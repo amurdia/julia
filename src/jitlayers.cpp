@@ -116,15 +116,6 @@ void addOptimizationPasses(PassManager *PM, int opt_level)
     PM->add(createVerifierPass());
 #endif
 
-    // Due to bugs and missing features LLVM < 5.0, does not properly propagate
-    // our invariants. We need to do GC rooting here. This reduces the
-    // effectiveness of the optimization, but should retain correctness.
-#if JL_LLVM_VERSION < 50000
-    PM->add(createLowerExcHandlersPass());
-    PM->add(createLateLowerGCFramePass());
-    PM->add(createLowerPTLSPass(imaging_mode));
-#endif
-
 #if defined(JL_ASAN_ENABLED)
 #   if JL_LLVM_VERSION >= 30700 && JL_LLVM_VERSION < 30800
     // LLVM 3.7 BUG: ASAN pass doesn't properly initialize its dependencies
@@ -143,13 +134,11 @@ void addOptimizationPasses(PassManager *PM, int opt_level)
 #else
         PM->add(createAlwaysInlinerPass()); // Respect always_inline
 #endif
-#if JL_LLVM_VERSION >= 50000
         PM->add(createBarrierNoopPass());
         PM->add(createLowerExcHandlersPass());
         PM->add(createGCInvariantVerifierPass(false));
         PM->add(createLateLowerGCFramePass());
         PM->add(createLowerPTLSPass(imaging_mode));
-#endif
         return;
     }
 #if JL_LLVM_VERSION >= 30700
@@ -172,6 +161,15 @@ void addOptimizationPasses(PassManager *PM, int opt_level)
     // list of passes from vmkit
     PM->add(createCFGSimplificationPass()); // Clean up disgusting code
     PM->add(createPromoteMemoryToRegisterPass()); // Kill useless allocas
+
+    // Due to bugs and missing features LLVM < 5.0, does not properly propagate
+    // our invariants. We need to do GC rooting here. This reduces the
+    // effectiveness of the optimization, but should retain correctness.
+#if JL_LLVM_VERSION < 50000
+    PM->add(createLowerExcHandlersPass());
+    PM->add(createLateLowerGCFramePass());
+    PM->add(createLowerPTLSPass(imaging_mode));
+#endif
 
     // hopefully these functions (from llvmcall) don't try to interact with the Julia runtime
     // or have anything that might corrupt the createLowerPTLSPass pass

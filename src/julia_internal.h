@@ -178,7 +178,9 @@ STATIC_INLINE int JL_CONST_FUNC jl_gc_alignsz(size_t sz, size_t alignment)
 {
     // The pools are aligned wit JL_CACHE_BYTE_ALIGNMENT (typically 64)
     // and we can't guarantee a bigger alignment.
-    assert(alignment <= JL_CACHE_BYTE_ALIGNMENT);
+    if (!(alignment <= JL_CACHE_BYTE_ALIGNMENT)) {
+        printf("Alignment %lu, sz: %lu\n", alignment, sz);
+    }
     // Pools with the correct alignment will have an object size that
     // is a multiple of the alignment. As an example an allocation with
     // sz of 48 and an alignment of 32 will need to be in pool of size 64.
